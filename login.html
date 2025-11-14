@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Login - Cafe Finder</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="brand"><div class="logo">☕</div><div>Cafe Finder</div></div>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="register.html">Register</a>
+      <a href="select.html">Find Cafe</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="card" style="margin-top:18px; max-width:640px; margin-left:auto; margin-right:auto;">
+      <h2>Welcome back 👋</h2>
+      <div style="margin-top:10px">
+        <label>Email</label>
+        <input id="li_email" type="email">
+        <label style="margin-top:10px">Password</label>
+        <input id="li_pw" type="password">
+        <div style="margin-top:12px;">
+          <button class="btn" id="loginBtn">Login</button>
+          <a style="margin-left:12px" href="register.html">Create account</a>
+        </div>
+        <p id="logmsg" class="small" style="margin-top:10px"></p>
+      </div>
+    </div>
+  </div>
+
+<script>
+document.getElementById('loginBtn').addEventListener('click',()=>{
+  const email=document.getElementById('li_email').value.trim().toLowerCase();
+  const pw=document.getElementById('li_pw').value;
+  let users=JSON.parse(localStorage.getItem('cf_users')||'{}');
+  if(!users[email] || users[email].pw !== pw){ document.getElementById('logmsg').textContent='Invalid credentials'; return; }
+  // store session
+  localStorage.setItem('cf_session', email);
+  document.getElementById('logmsg').textContent='Logged in ✅ — Redirecting...';
+  setTimeout(()=>location.href='select.html',600);
+});
+</script>
+</body>
+</html>
