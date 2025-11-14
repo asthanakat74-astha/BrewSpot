@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Select Cafes - Cafe Finder</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="brand"><div class="logo">☕</div><div>Cafe Finder</div></div>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="register.html">Register</a>
+      <a href="login.html">Login</a>
+      <a href="cafes.html">Nearby</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Find your perfect cafe 🍰</h2>
+      <p class="small">Select filters to find cafes matching your mood.</p>
+
+      <div style="margin-top:12px" class="grid cols-2">
+        <div>
+          <label>Type</label>
+          <select id="type">
+            <option value="">Any</option>
+            <option>Rooftop</option>
+            <option>Cozy</option>
+            <option>Family</option>
+            <option>Work-friendly</option>
+            <option>Live-music</option>
+          </select>
+
+          <label style="margin-top:10px">Fee (avg price)</label>
+          <select id="fee">
+            <option value="">Any</option>
+            <option value="low">₹</option>
+            <option value="mid">₹₹</option>
+            <option value="high">₹₹₹</option>
+          </select>
+
+          <label style="margin-top:10px">Celebration</label>
+          <select id="cele">
+            <option value="">Any</option>
+            <option>Birthday</option>
+            <option>Anniversary</option>
+            <option>Small Party</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Dishes (search)</label>
+          <input id="dishes" placeholder="e.g. mocha, pastries">
+          <label style="margin-top:10px">Theme</label>
+          <select id="theme">
+            <option value="">Any</option>
+            <option>Vintage</option>
+            <option>Minimal</option>
+            <option>Boho</option>
+          </select>
+
+          <div style="margin-top:12px">
+            <button class="btn" id="findBtn">Find Cafes</button>
+            <button style="margin-left:8px" class="btn" id="goMap">See Nearby</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="results" style="margin-top:14px"></div>
+    </div>
+  </div>
+
+<script>
+// Sample cafeDB (will be also used by cafes.html)
+const defaultCafes = [
+  {id:'c1', name:'Brew Hub Cafe', lat:19.076, lng:72.877, type:'Cozy', fee:'mid', dishes:['mocha','pastry'], theme:'Vintage', motto:'Fresh Brews Daily', famous:'Cold Coffee', rating:4.3},
+  {id:'c2', name:'Cafe Aroma', lat:19.078, lng:72.875, type:'Work-friendly', fee:'low', dishes:['americano','sandwich'], theme:'Minimal', motto:'Best Coffee in Town', famous:'Espresso', rating:4.5},
+  {id:'c3', name:'Choco Delight Cafe', lat:19.074, lng:72.879, type:'Family', fee:'mid', dishes:['cakes','hot chocolate'], theme:'Boho', motto:'Taste the Magic', famous:'Desserts', rating:4.1},
+  // add more if needed
+];
+
+if(!localStorage.getItem('cf_cafes')) localStorage.setItem('cf_cafes', JSON.stringify(defaultCafes));
+
+function renderResults(list){
+  const r = document.getElementById('results');
+  if(!list.length){ r.innerHTML='<p class="small">No cafes match your filters. Try broader options.</p>'; return; }
+  r.innerHTML = list.map(c=>`
+    <div class="cafe-card card" style="margin-bottom:10px">
+      <div class="cafe-meta">
+        <h3>${c.name} <span class="badge">${c.type}</span></h3>
+        <div class="small">${c.motto} • <span class="rating">★ ${c.rating}</span></div>
+      </div>
+      <div style="margin-left:10px">
+        <button class="btn" onclick="openCafe('${c.id}')">View</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('findBtn').addEventListener('click', ()=>{
+  const type=document.getElementById('type').value;
+  const fee=document.getElementById('fee').value;
+  const theme=document.getElementById('theme').value;
+  const cele=document.getElementById('cele').value;
+  const dishes=document.getElementById('dishes').value.toLowerCase();
+  const cafes = JSON.parse(localStorage.getItem('cf_cafes')||'[]');
+  const filtered = cafes.filter(c=>{
+    if(type && c.type !== type) return false;
+    if(fee && c.fee !== fee) return false;
+    if(theme && c.theme !== theme) return false;
+    if(cele && (!c.celebrations || !c.celebrations.includes(cele))) return false;
+    if(dishes){
+      let found = c.dishes.join(' ').toLowerCase().includes(dishes);
+      if(!found) return false;
+    }
+    return true;
+  });
+  renderResults(filtered);
+});
+
+document.getElementById('goMap').addEventListener('click', ()=>location.href='cafes.html');
+
+function openCafe(id){
+  // store temp and go to cafes page (cafes.html will open modal)
+  localStorage.setItem('cf_open', id);
+  location.href = 'cafes.html';
+}
+
+// show default list
+renderResults(JSON.parse(localStorage.getItem('cf_cafes')));
+</script>
+</body>
+</html>
