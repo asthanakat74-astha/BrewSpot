@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Register - Cafe Finder</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="brand"><div class="logo">☕</div><div>Cafe Finder</div></div>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="login.html">Login</a>
+      <a href="select.html">Find Cafe</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="card" style="margin-top:18px">
+      <h2>Create account ✨</h2>
+      <p class="small">Register to save favorites, post reviews and make reservations.</p>
+
+      <div style="max-width:640px; margin-top:12px">
+        <div class="form-row">
+          <div class="field">
+            <label>Full name</label>
+            <input id="name" placeholder="Your name">
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input id="email" type="email" placeholder="you@example.com">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Password</label>
+            <input id="password" type="password" placeholder="At least 6 characters">
+          </div>
+          <div class="field">
+            <label>Display nickname</label>
+            <input id="nick" placeholder="nickname (optional)">
+          </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <button class="btn" id="registerBtn">Create account</button>
+          <a style="margin-left:12px" href="login.html">Already have account? Login</a>
+        </div>
+
+        <p id="regmsg" class="small" style="margin-top:12px"></p>
+      </div>
+    </div>
+  </div>
+
+<script>
+document.getElementById('registerBtn').addEventListener('click',()=>{
+  const name=document.getElementById('name').value.trim();
+  const email=document.getElementById('email').value.trim().toLowerCase();
+  const pw=document.getElementById('password').value;
+  const nick=document.getElementById('nick').value.trim()||name.split(' ')[0];
+
+  if(!name||!email||pw.length<6){ document.getElementById('regmsg').textContent='Please fill valid details. Password >=6 chars.'; return; }
+
+  let users = JSON.parse(localStorage.getItem('cf_users')||'{}');
+  if(users[email]){ document.getElementById('regmsg').textContent='Account already exists. Try login.'; return; }
+  users[email] = { name, nick, email, pw, created:Date.now(), favorites:[], reviews:[] };
+  localStorage.setItem('cf_users', JSON.stringify(users));
+  document.getElementById('regmsg').textContent = 'Account created ✅ — Redirecting to login...';
+  setTimeout(()=>location.href='login.html',900);
+});
+</script>
+</body>
+</html>
