@@ -1,0 +1,295 @@
+<!doctype html>
+<html>
+<head>
+    <style>
+/* 🔸 Animated gradient coffee background */
+body {
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(45deg, #8b5e34, #d4a373, #f5ebe0, #d6ccc2);
+    background-size: 500% 500%;
+    animation: gradientFlow 18s ease infinite;
+    overflow-x: hidden;
+}
+
+/* Coffee gradient animation */
+@keyframes gradientFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 🔸 Video background */
+#coffeeVideo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.25; /* soft aesthetic */
+    z-index: -2;
+}
+
+/* 🔸 Floating coffee cup icons */
+.coffee-icon {
+    position: absolute;
+    width: 60px;
+    opacity: 0.8;
+    animation: floatUp 10s linear infinite;
+}
+
+/* Floating animation */
+@keyframes floatUp {
+    0% { transform: translateY(110vh) rotate(0deg); }
+    100% { transform: translateY(-20vh) rotate(360deg); }
+}
+</style>
+
+  <meta charset="utf-8">
+  <title>Nearby Cafes - Cafe Finder</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="brand"><div class="logo">☕</div><div>Cafe Finder</div></div>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="select.html">Find</a>
+      <a href="register.html">Register</a>
+      <a href="login.html">Login</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Nearby Cafes 📍</h2>
+      <p class="small">Click a marker to open details. Upload photos, leave reviews, and reserve.</p>
+      <div id="map" class="card" style="margin-top:12px"></div>
+
+      <div style="margin-top:14px" id="listArea"></div>
+    </div>
+  </div>
+
+  <div id="modalRoot" style="display:none"></div>
+
+<script>
+/* Utilities & data */
+let cafes = JSON.parse(localStorage.getItem('cf_cafes')||'[]');
+if(!cafes || !cafes.length){
+  cafes = [
+    {id:'c1', name:'Brew Hub Cafe', lat:19.076, lng:72.877, type:'Cozy', fee:'mid', dishes:['mocha','pastry'], theme:'Vintage', motto:'Fresh Brews Daily', famous:'Cold Coffee', rating:4.3, photos:[], reviews:[], reservations:[]},
+    {id:'c2', name:'Cafe Aroma', lat:19.078, lng:72.875, type:'Work-friendly', fee:'low', dishes:['americano','sandwich'], theme:'Minimal', motto:'Best Coffee in Town', famous:'Espresso', rating:4.5, photos:[], reviews:[], reservations:[]},
+    {id:'c3', name:'Choco Delight Cafe', lat:19.074, lng:72.879, type:'Family', fee:'mid', dishes:['cakes','hot chocolate'], theme:'Boho', motto:'Taste the Magic', famous:'Desserts', rating:4.1, photos:[], reviews:[], reservations:[]},
+  ];
+  localStorage.setItem('cf_cafes', JSON.stringify(cafes));
+}
+
+function saveCafes(){ localStorage.setItem('cf_cafes', JSON.stringify(cafes)); }
+
+/* Map init */
+let map = L.map('map').setView([19.076,72.877], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
+
+/* Try detect user location */
+if(navigator.geolocation){
+  navigator.geolocation.getCurrentPosition(p=>{
+    const lat=p.coords.latitude, lng=p.coords.longitude;
+    L.circle([lat,lng], {radius:40, color:'#ff7b00', fill:false}).addTo(map);
+    map.setView([lat,lng],14);
+  });
+}
+
+/* Markers & list */
+const listArea = document.getElementById('listArea');
+function renderList(){
+  listArea.innerHTML = cafes.map(c=>`
+    <div class="cafe-card card" id="item-${c.id}">
+      <div class="cafe-meta">
+        <h3>${c.name} <span class="badge">${c.type}</span></h3>
+        <div class="small">${c.motto} • <span class="rating">★ ${c.rating}</span> • <b>Famous:</b> ${c.famous}</div>
+      </div>
+      <div>
+        <button class="btn" onclick="openDetails('${c.id}')">Details</button>
+      </div>
+    </div>
+  `).join('');
+}
+renderList();
+
+let markers = {};
+cafes.forEach(c=>{
+  const m = L.marker([c.lat,c.lng]).addTo(map).bindPopup(`<b>${c.name}</b><br>${c.motto}`);
+  m.on('click', ()=> openDetails(c.id));
+  markers[c.id]=m;
+});
+
+/* If user clicked a cafe from select page, open it automatically */
+const openId = localStorage.getItem('cf_open');
+if(openId){ setTimeout(()=>{ if(cafes.find(x=>x.id===openId)) openDetails(openId); localStorage.removeItem('cf_open'); },700); }
+
+/* Modal / details */
+function openDetails(id){
+  const cafe = cafes.find(x=>x.id===id);
+  const modal = document.createElement('div');
+  modal.className='modal';
+  modal.innerHTML = `
+    <div class="modal-card">
+      <button style="float:right" onclick="closeModal(this)">✕</button>
+      <h2>${cafe.name} <small class="small">• ${cafe.type}</small></h2>
+      <div style="display:flex; gap:14px; margin-top:10px;">
+        <div style="flex:1">
+          <div><b>Motto:</b> ${cafe.motto}</div>
+          <div style="margin-top:6px"><b>Famous for:</b> ${cafe.famous}</div>
+          <div style="margin-top:6px"><b>Theme:</b> ${cafe.theme} • <b>Avg Price:</b> ${cafe.fee}</div>
+          <div style="margin-top:8px"><b>Rating:</b> <span class="rating">★ ${cafe.rating}</span></div>
+
+          <div style="margin-top:12px">
+            <h4>Reservations 🥳</h4>
+            <div class="small">Reserve date/time for parties or celebrations</div>
+            <div class="form-row" style="margin-top:8px">
+              <input type="date" id="res_date_${cafe.id}" class="field">
+              <input type="time" id="res_time_${cafe.id}" class="field">
+            </div>
+            <input id="res_name_${cafe.id}" placeholder="Your name" style="margin-top:8px"/>
+            <div style="margin-top:8px"><button class="btn" onclick="makeReservation('${cafe.id}')">Reserve</button></div>
+          </div>
+
+          <div style="margin-top:12px">
+            <h4>Leave a review ⭐</h4>
+            <div class="form-row">
+              <input id="rev_name_${cafe.id}" placeholder="Name">
+              <select id="rev_rating_${cafe.id}">
+                <option value="5">5 ★</option>
+                <option value="4">4 ★</option>
+                <option value="3">3 ★</option>
+                <option value="2">2 ★</option>
+                <option value="1">1 ★</option>
+              </select>
+            </div>
+            <textarea id="rev_text_${cafe.id}" placeholder="Write your review..."></textarea>
+            <div style="margin-top:8px">
+              <label class="small">Upload photo (optional)</label><br/>
+              <input type="file" id="rev_photo_${cafe.id}" accept="image/*">
+            </div>
+            <div style="margin-top:8px">
+              <button class="btn" onclick="postReview('${cafe.id}')">Post Review</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="width:320px">
+          <div><b>Photos</b></div>
+          <div class="photos-row" id="photos_${cafe.id}" style="margin-top:8px">
+            ${ (cafe.photos||[]).map(p=>`<img src="${p}" />`).join('') }
+          </div>
+
+          <div style="margin-top:12px">
+            <h4>Reviews</h4>
+            <div id="reviews_${cafe.id}" style="margin-top:6px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  renderReviews(cafe.id);
+}
+
+function closeModal(el){
+  const modal = el.closest('.modal');
+  if(modal) modal.remove();
+}
+
+/* Reviews logic */
+function renderReviews(id){
+  const cafe = cafes.find(c=>c.id===id);
+  const container = document.getElementById('reviews_'+id);
+  if(!container) return;
+  container.innerHTML = (cafe.reviews||[]).map(r=>`
+    <div style="padding:8px; border-radius:8px; background:#fff; margin-bottom:8px">
+      <div style="display:flex; justify-content:space-between">
+        <div><strong>${r.name}</strong> <span class="small">• ${new Date(r.ts).toLocaleString()}</span></div>
+        <div class="rating">★ ${r.rating}</div>
+      </div>
+      <div style="margin-top:6px">${r.text||''}</div>
+      ${ r.photo ? `<img src="${r.photo}" style="width:140px; height:90px; object-fit:cover; margin-top:8px; border-radius:8px">` : '' }
+    </div>
+  `).join('');
+}
+
+/* Post review */
+function postReview(id){
+  const cafe = cafes.find(c=>c.id===id);
+  const name = document.getElementById('rev_name_'+id).value.trim() || 'Anonymous';
+  const rating = parseInt(document.getElementById('rev_rating_'+id).value,10) || 5;
+  const text = document.getElementById('rev_text_'+id).value.trim();
+  const fileInput = document.getElementById('rev_photo_'+id);
+  const file = fileInput.files && fileInput.files[0];
+  if(file){
+    const reader = new FileReader();
+    reader.onload = function(e){
+      const dataUrl = e.target.result;
+      cafe.reviews = cafe.reviews || [];
+      cafe.reviews.unshift({ name, rating, text, photo: dataUrl, ts: Date.now() });
+      cafe.photos = cafe.photos || [];
+      cafe.photos.unshift(dataUrl);
+      // update average rating quickly
+      cafe.rating = Math.round(((cafe.rating*( (cafe.reviews.length-1)||1 )) + rating) / (cafe.reviews.length) * 10)/10;
+      saveCafes(); renderReviews(id); updatePhotos(id); renderList();
+    };
+    reader.readAsDataURL(file);
+  } else {
+    cafe.reviews = cafe.reviews || [];
+    cafe.reviews.unshift({ name, rating, text, photo:null, ts: Date.now() });
+    cafe.rating = Math.round(((cafe.rating*( (cafe.reviews.length-1)||1 )) + rating) / (cafe.reviews.length) * 10)/10;
+    saveCafes(); renderReviews(id); updatePhotos(id); renderList();
+  }
+}
+
+/* Photos update */
+function updatePhotos(id){
+  const pdiv = document.getElementById('photos_'+id);
+  const cafe = cafes.find(c=>c.id===id);
+  if(pdiv) pdiv.innerHTML = (cafe.photos||[]).map(p=>`<img src="${p}" />`).join('');
+}
+
+/* Reservations */
+function makeReservation(id){
+  const cafe = cafes.find(c=>c.id===id);
+  const date = document.getElementById('res_date_'+id).value;
+  const time = document.getElementById('res_time_'+id).value;
+  const name = document.getElementById('res_name_'+id).value || 'Guest';
+  if(!date||!time){ alert('Pick date and time'); return; }
+  cafe.reservations = cafe.reservations || [];
+  cafe.reservations.push({ name, date, time, ts:Date.now() });
+  saveCafes();
+  alert('Reservation saved ✅ — check in cafe reservations array (localStorage).');
+  renderList();
+}
+
+/* Small helper to refresh list when reviews/reservations change */
+function renderList(){ // override earlier to keep updated
+  const listArea = document.getElementById('listArea');
+  listArea.innerHTML = cafes.map(c=>`
+    <div class="cafe-card card" id="item-${c.id}">
+      <div class="cafe-meta">
+        <h3>${c.name} <span class="badge">${c.type}</span></h3>
+        <div class="small">${c.motto} • <span class="rating">★ ${c.rating}</span> • <b>Famous:</b> ${c.famous}</div>
+      </div>
+      <div>
+        <button class="btn" onclick="openDetails('${c.id}')">Details</button>
+      </div>
+    </div>
+  `).join('');
+}
+renderList();
+
+</script>
+
+</body>
+</html>
